@@ -1,0 +1,219 @@
+import { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/store/authStore";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { Role } from "@/types";
+
+export const Layout = ({ children }: { children: React.ReactNode }) => {
+  const { user, logout } = useAuthStore();
+  const { t, language, setLanguage } = useLanguage();
+  const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
+  const navItems = [
+    {
+      to: "/",
+      label: t("nav.dashboard"),
+      icon: "📊",
+      roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
+    },
+    {
+      to: "/products",
+      label: t("nav.products"),
+      icon: "📦",
+      roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
+    },
+    {
+      to: "/inventory",
+      label: t("nav.inventory"),
+      icon: "📋",
+      roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
+    },
+    {
+      to: "/scanner",
+      label: t("nav.scanner"),
+      icon: "📷",
+      roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
+    },
+    {
+      to: "/production-orders",
+      label: t("nav.productionOrders") || "Production Orders",
+      icon: "🏭",
+      roles: [Role.ADMIN, Role.MANAGER],
+    },
+    {
+      to: "/transactions",
+      label: t("nav.transactions"),
+      icon: "📝",
+      roles: [Role.ADMIN, Role.MANAGER, Role.STAFF],
+    },
+    { to: "/users", label: t("nav.users"), icon: "👥", roles: [Role.ADMIN] },
+    {
+      to: "/reports",
+      label: t("nav.reports"),
+      icon: "📊",
+      roles: [Role.ADMIN],
+    },
+  ];
+
+  const filteredNavItems = navItems.filter((item) =>
+    user ? item.roles.includes(user.role) : false
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {isMobileMenuOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
+              </svg>
+            </button>
+
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <img
+                src="/src/assets/images/logo-skp.webp"
+                alt="SKP Logo"
+                className="h-12"
+              />
+            </div>
+
+            {/* User Info, Language Switcher & Logout */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="hidden sm:flex flex-col items-end">
+                <span className="text-xs sm:text-sm font-medium text-gray-700">
+                  {user?.firstName} {user?.lastName}
+                </span>
+                <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-700 rounded">
+                  {user?.role}
+                </span>
+              </div>
+
+              {/* Language Switcher */}
+              <button
+                onClick={() => {
+                  const newLang = language === "th" ? "en" : "th";
+                  setLanguage(newLang);
+                }}
+                className="btn btn-secondary text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1"
+                title={
+                  language === "th" ? "Switch to English" : "เปลี่ยนเป็นไทย"
+                }
+              >
+                <span className="text-sm">
+                  {language === "en" ? "🇬🇧" : "🇹🇭"}
+                </span>
+                <span className="hidden sm:inline">
+                  {language === "en" ? "EN" : "TH"}
+                </span>
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="btn btn-secondary text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2"
+              >
+                {t("auth.logout")}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden border-t border-gray-200 bg-white">
+            <nav className="px-4 py-4 space-y-1">
+              {filteredNavItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      isActive
+                        ? "bg-primary-600 text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  <span className="text-xl">{item.icon}</span>
+                  <span className="font-medium">{item.label}</span>
+                </NavLink>
+              ))}
+
+              {/* Mobile User Info */}
+              <div className="sm:hidden pt-4 mt-4 border-t border-gray-200">
+                <div className="px-4 py-2">
+                  <p className="text-sm font-medium text-gray-900">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-xs text-gray-600">{user?.email}</p>
+                  <span className="inline-block mt-2 text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded">
+                    {user?.role}
+                  </span>
+                </div>
+              </div>
+            </nav>
+          </div>
+        )}
+      </header>
+
+      <div className="flex">
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:block w-64 bg-white shadow-sm fixed left-0 top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+          <nav className="p-4 space-y-2">
+            {filteredNavItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-primary-600 text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`
+                }
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span className="font-medium">{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 lg:ml-64">{children}</main>
+      </div>
+    </div>
+  );
+};
