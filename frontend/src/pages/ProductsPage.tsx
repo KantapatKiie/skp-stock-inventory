@@ -6,6 +6,7 @@ import { Layout } from "@/components/Layout";
 import { Loading } from "@/components/Loading";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Swal from "sweetalert2";
+import QRCodePrintModal from "@/components/QRCodePrintModal";
 
 export const ProductsPage = () => {
   const { t } = useLanguage();
@@ -13,6 +14,8 @@ export const ProductsPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   // Debounce search input
   useEffect(() => {
@@ -179,13 +182,44 @@ export const ProductsPage = () => {
     }
   };
 
+  const handleSelectProduct = (productId: string) => {
+    setSelectedProducts(prev =>
+      prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedProducts.length === products.length) {
+      setSelectedProducts([]);
+    } else {
+      setSelectedProducts(products.map((p: any) => p.id));
+    }
+  };
+
+  const handlePrintQRCode = (productId?: string) => {
+    if (productId) {
+      setSelectedProducts([productId]);
+    }
+    setShowQRModal(true);
+  };
+
+  const handlePrintSelected = () => {
+    if (selectedProducts.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: t('products.selectToPrint'),
+        showConfirmButton: true,
+      });
+      return;
+    }
+    setShowQRModal(true);
+  };
+
   if (isLoading) {
     return <Loading />;
   }
-
-  console.log("Products data:", data);
-  console.log("Products array:", data?.products);
-  console.log("Products length:", data?.products?.length);
 
   const products = data?.products || [];
 
@@ -196,12 +230,25 @@ export const ProductsPage = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             {t("products.title")}
           </h1>
-          <button
-            onClick={handleAdd}
-            className="btn btn-primary w-full sm:w-auto"
-          >
-            + {t("products.addProduct")}
-          </button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            {selectedProducts.length > 0 && (
+              <button
+                onClick={handlePrintSelected}
+                className="btn bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2 flex-1 sm:flex-initial"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                {t("products.printSelected")} ({selectedProducts.length})
+              </button>
+            )}
+            <button
+              onClick={handleAdd}
+              className="btn btn-primary flex-1 sm:flex-initial"
+            >
+              + {t("products.addProduct")}
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -221,6 +268,14 @@ export const ProductsPage = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.length === products.length && products.length > 0}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t("products.sku")}
                   </th>
@@ -247,7 +302,7 @@ export const ProductsPage = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {products.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                       {t("common.noData")}
                     </td>
                   </tr>
@@ -260,7 +315,15 @@ export const ProductsPage = () => {
                     ) || 0;
 
                   return (
-                    <tr key={product.id}>
+                    <tr key={product.id} className={selectedProducts.includes(product.id) ? 'bg-blue-50' : ''}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedProducts.includes(product.id)}
+                          onChange={() => handleSelectProduct(product.id)}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {product.sku}
                       </td>
@@ -296,7 +359,14 @@ export const ProductsPage = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => handlePrintQRCode(product.id)}
+                            className="px-3 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-medium transition-colors"
+                            title={t("products.printQRCode")}
+                          >
+                            📱 QR
+                          </button>
                           <button
                             onClick={() => handleEdit(product)}
                             className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-medium transition-colors"
@@ -360,8 +430,14 @@ export const ProductsPage = () => {
               0;
 
             return (
-              <div key={product.id} className="card p-4 space-y-3">
-                <div className="flex justify-between items-start">
+              <div key={product.id} className={`card p-4 space-y-3 ${selectedProducts.includes(product.id) ? 'border-2 border-blue-500 bg-blue-50' : ''}`}>
+                <div className="flex justify-between items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedProducts.includes(product.id)}
+                    onChange={() => handleSelectProduct(product.id)}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 mt-1"
+                  />
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">
                       {product.name}
@@ -409,6 +485,12 @@ export const ProductsPage = () => {
                 </div>
 
                 <div className="flex gap-2 pt-2 border-t border-gray-200">
+                  <button
+                    onClick={() => handlePrintQRCode(product.id)}
+                    className="flex-1 px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-sm font-medium transition-colors"
+                  >
+                    📱 QR
+                  </button>
                   <button
                     onClick={() => handleEdit(product)}
                     className="flex-1 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-sm font-medium transition-colors"
@@ -690,6 +772,16 @@ export const ProductsPage = () => {
             </div>
           </div>
         )}
+
+        {/* QR Code Print Modal */}
+        <QRCodePrintModal
+          isOpen={showQRModal}
+          onClose={() => {
+            setShowQRModal(false);
+            setSelectedProducts([]);
+          }}
+          products={products.filter((p: any) => selectedProducts.includes(p.id))}
+        />
       </div>
     </Layout>
   );
