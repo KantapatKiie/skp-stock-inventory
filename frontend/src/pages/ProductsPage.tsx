@@ -482,15 +482,31 @@ export const ProductsPage = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       {t("products.barcode")}
+                      <span className="text-xs text-gray-500 ml-2">(Auto-generated if empty)</span>
                     </label>
-                    <input
-                      type="text"
-                      value={formData.barcode}
-                      onChange={(e) =>
-                        setFormData({ ...formData, barcode: e.target.value })
-                      }
-                      className="input"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.barcode}
+                        onChange={(e) =>
+                          setFormData({ ...formData, barcode: e.target.value })
+                        }
+                        placeholder={`AUTO-${Date.now().toString().slice(-8)}`}
+                        className="input flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const timestamp = Date.now().toString();
+                          const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+                          setFormData({ ...formData, barcode: `BC${timestamp.slice(-8)}${random}` });
+                        }}
+                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm font-medium transition-colors"
+                        title="Generate Barcode"
+                      >
+                        🔄
+                      </button>
+                    </div>
                   </div>
                 </div>
 

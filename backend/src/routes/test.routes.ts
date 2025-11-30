@@ -70,6 +70,38 @@ router.get('/endpoints', async (req, res) => {
     results.tests.transactions = { status: '❌ FAIL', message: error.message };
   }
 
+  // Test 8: Production Orders Count
+  try {
+    const count = await (prisma as any).production_orders.count();
+    results.tests.productionOrders = { status: '✅ OK', count, message: `${count} production orders found` };
+  } catch (error: any) {
+    results.tests.productionOrders = { status: '❌ FAIL', message: error.message };
+  }
+
+  // Test 9: Production Sections Count
+  try {
+    const count = await (prisma as any).production_sections.count();
+    results.tests.productionSections = { status: '✅ OK', count, message: `${count} production sections found` };
+  } catch (error: any) {
+    results.tests.productionSections = { status: '❌ FAIL', message: error.message };
+  }
+
+  // Test 10: Production Processes Count
+  try {
+    const count = await (prisma as any).production_processes.count();
+    results.tests.productionProcesses = { status: '✅ OK', count, message: `${count} production processes found` };
+  } catch (error: any) {
+    results.tests.productionProcesses = { status: '❌ FAIL', message: error.message };
+  }
+
+  // Test 11: Scan Logs Count
+  try {
+    const count = await (prisma as any).scan_logs.count();
+    results.tests.scanLogs = { status: '✅ OK', count, message: `${count} scan logs found` };
+  } catch (error: any) {
+    results.tests.scanLogs = { status: '❌ FAIL', message: error.message };
+  }
+
   // Calculate overall status
   const allTests = Object.values(results.tests);
   const passed = allTests.filter((t: any) => t.status === '✅ OK').length;
@@ -135,11 +167,13 @@ router.get('/routes', (req, res) => {
       production: {
         'GET /api/production/sections': 'Get production sections',
         'GET /api/production/warehouses': 'Get warehouses for production',
-        'GET /api/production/orders': 'Get production orders',
-        'POST /api/production/orders': 'Create production order',
+        'GET /api/production/orders': 'Get production orders (with date filter)',
+        'POST /api/production/orders': 'Create production order (auto-generate orderNo)',
+        'PATCH /api/production/orders/:id': 'Update production order status',
+        'DELETE /api/production/orders/:id': 'Delete production order',
         'GET /api/production/scan-logs': 'Get scan logs',
         'POST /api/production/scan-logs': 'Create scan log',
-        'PATCH /api/production/processes/:id': 'Update production process',
+        'PATCH /api/production/processes/:id': 'Update production process status',
       },
     },
     testEndpoints: {

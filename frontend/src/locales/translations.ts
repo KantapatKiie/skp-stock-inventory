@@ -28,6 +28,8 @@ export const translations = {
       accessDenied: "ไม่มีสิทธิ์เข้าถึง",
       adminOnlyFeature: "ฟีเจอร์นี้สำหรับผู้ดูแลระบบเท่านั้น",
       actions: "จัดการ",
+      to: "ถึงวันที่",
+      from: "จากวันที่",
     },
     nav: {
       dashboard: "หน้าหลัก",
@@ -325,6 +327,7 @@ export const translations = {
       processNotes: "หมายเหตุ",
       startTime: "เริ่มต้น",
       endTime: "สิ้นสุด",
+      duration: "ระยะเวลา",
     },
   },
   en: {
@@ -352,6 +355,8 @@ export const translations = {
       accessDenied: "Access Denied",
       adminOnlyFeature: "This feature is for administrators only",
       actions: "Actions",
+      to: "To Date",
+      from: "From Date",
     },
     nav: {
       dashboard: "Dashboard",

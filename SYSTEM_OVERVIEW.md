@@ -3,9 +3,9 @@
 ## 📋 Project Information
 
 **Project Name**: SKP Stock Inventory System  
-**Version**: 1.0.0  
-**Date**: November 2024  
-**Phase**: POC Phase 1  
+**Version**: 2.0.0  
+**Date**: November 30, 2024  
+**Phase**: POC Phase 3 (Complete Production Management)  
 **Developer**: Development Team  
 **Client**: SKP
 
@@ -67,7 +67,7 @@
 | **Firebase** | 10.14.1 | Authentication และ Analytics |
 | **Axios** | 1.7.7 | HTTP Client |
 | **Recharts** | 2.13.3 | Data Visualization Charts |
-| **React Hot Toast** | 2.4.1 | Toast Notifications |
+| **SweetAlert2** | 11.14.5 | Beautiful Modal Alerts & Confirmations (replaced toast) |
 
 ### Backend
 | Technology | Version | Purpose |
@@ -80,6 +80,7 @@
 | **bcryptjs** | 2.4.3 | Password Hashing |
 | **Zod** | 3.23.8 | Schema Validation |
 | **CORS** | 2.8.5 | Cross-Origin Resource Sharing |
+| **Test Routes** | Custom | API Health Checks & Endpoint Validation |
 
 ### Database
 | Technology | Version | Purpose |
@@ -175,7 +176,10 @@
 - **Warehouse → Transaction**: หนึ่งคลังสามารถมีหลายธุรกรรม (1:N)
 - **Warehouse → Inventory**: หนึ่งคลังสามารถเก็บหลายสินค้า (1:N)
 - **Product → ProductionOrder**: หนึ่งสินค้าสามารถมีหลายคำสั่งผลิต (1:N)
-- **Warehouse → ProductionOrder**: หนึ่งคลังสามารถมีหลายคำสั่งผลิต (1:N)
+- **ProductionOrder → ProductionProcess**: หนึ่งคำสั่งผลิตมีหลายขั้นตอน (1:N)
+- **ProductionSection → ProductionProcess**: หนึ่งแผนกมีหลายขั้นตอนการผลิต (1:N)
+- **Product → ScanLog**: หนึ่งสินค้าสามารถมีหลายประวัติการสแกน (1:N)
+- **User → ScanLog**: หนึ่งผู้ใช้สามารถสแกนหลายครั้ง (1:N)
 
 ---
 
@@ -714,12 +718,16 @@ volumes:
 - ประวัติทุกธุรกรรม
 - กรองตามประเภท/วันที่
 
-### 5. Production Orders
-- สร้างคำสั่งผลิต
-- ติดตามความคืบหน้า
-- อัพเดทสถานะ (PENDING/IN_PROGRESS/COMPLETED)
-- บันทึกผลผลิต
-- สร้างธุรกรรมอัตโนมัติ
+### 5. Production Orders (Enhanced)
+- สร้างคำสั่งผลิตพร้อมเลขที่อัตโนมัติ (PO-YYYYMMDD-XXXX)
+- ขั้นตอนการผลิต 5 ขั้นตอน: CUT → SEW → IRON → QC → PACK
+- สร้าง production_processes ทั้ง 5 ขั้นตอนอัตโนมัติเมื่อสร้างคำสั่งผลิต
+- ติดตามความคืบหน้าแบบ Real-time ด้วย Status และ Icon แสดงผล
+- อัพเดทสถานะแต่ละขั้นตอน (PENDING/IN_PROGRESS/COMPLETED)
+- Auto-complete ทุกขั้นตอนเมื่อคำสั่งผลิตเสร็จสมบูรณ์
+- แสดงผลแบบ Responsive: Card layout (mobile) → Grid layout (desktop)
+- บันทึกเวลาเริ่มต้น-สิ้นสุดแต่ละขั้นตอน
+- บันทึกจำนวนผลิตและหมายเหตุ
 
 ### 6. Reports & Analytics
 - รายงานมูลค่าสินค้าคงคลัง
@@ -729,11 +737,15 @@ volumes:
 - รายงานสต็อกต่ำ
 - แสดงผลด้วย Charts และ Graphs
 
-### 7. Barcode Scanner
+### 7. Barcode Scanner & Scan Logs
 - สแกนบาร์โค้ดเพื่อค้นหาสินค้า
 - บันทึกรับ-จ่ายอย่างรวดเร็ว
 - รองรับกล้องมือถือ
 - แสดงข้อมูลแบบ Real-time
+- บันทึก Scan Logs ทุกการสแกน
+- เก็บข้อมูล Location (GPS), Section, Warehouse
+- รองรับ Action Types: RECEIVE, ISSUE, RETURN, QUALITY_CHECK, MOVE
+- อัพเดท Inventory อัตโนมัติตาม Action Type
 
 ### 8. User Management
 - จัดการผู้ใช้งาน (Admin only)
@@ -836,6 +848,92 @@ VITE_FIREBASE_PROJECT_ID="your-project-id"
 4. **Mobile Scanner**: Barcode scanner works but could be more accurate
 5. **Offline Support**: No PWA/offline capabilities yet
 
+### Phase 3 Improvements (v2.0.0 - Nov 30, 2024)
+
+#### 🎨 UI/UX Enhancements
+- ✅ **SweetAlert2 Integration**: Replaced all toast/window.confirm with beautiful modal alerts
+  - Success messages with 1.5s auto-close
+  - Confirmation dialogs with custom styling
+  - Better error handling with clear messages
+- ✅ **Icon-Based Action Buttons**: Standardized across all pages
+  - Edit button: ✏️ แก้ไข (blue-100 background)
+  - Delete button: 🗑️ ลบ (red-100 background)
+  - Consistent hover effects and transitions
+- ✅ **Responsive Design**: Made all pages mobile-first
+  - Production processes modal fully responsive
+  - Card layouts for mobile, grid for desktop
+  - Adaptive text sizes (text-sm → text-base → text-lg)
+  - Icon sizes adapt to screen size (w-8 h-8 → w-10 h-10)
+
+#### 🔧 Performance Optimizations
+- ✅ **Search Input Fix**: Eliminated focus loss during typing
+  - Implemented placeholderData strategy in React Query
+  - Added 500ms debounce for search optimization
+  - Smooth typing experience without re-renders
+
+#### 🏭 Production Management System
+- ✅ **5-Step Production Workflow**: Complete manufacturing process
+  - CUT (ตัดผ้า) → SEW (เย็บ) → IRON (รีด) → QC (ตรวจสอบ) → PACK (แพ็ค)
+  - Visual progress tracking with icons and colors
+  - Status badges: PENDING (gray), IN_PROGRESS (blue), COMPLETED (green)
+- ✅ **Auto-Generate Order Numbers**: PO-YYYYMMDD-XXXX format
+  - Date-based sequential numbering
+  - Unique constraint in database
+  - Automatic increment per day
+- ✅ **Production Processes**:
+  - Auto-create 5 processes when order is created
+  - Individual process status tracking
+  - Start/End time recording
+  - Quantity tracking per process
+  - Notes for each process step
+- ✅ **Auto-Complete Logic**:
+  - When order status → COMPLETED
+  - Automatically completes all pending processes
+  - Sets completedQuantity = targetQuantity
+  - Records completedDate
+
+#### 🌐 Internationalization (i18n)
+- ✅ **Complete Multi-Language Support**:
+  - All components translated (Thai/English)
+  - Loading component with i18n
+  - Production terminology in both languages
+  - Dynamic language switching
+
+#### 🔍 Data Handling Improvements
+- ✅ **Response Normalization**:
+  - Backend sends: `production_processes`, `products`
+  - Frontend normalizes to: `processes`, `product`
+  - Consistent data structure across components
+- ✅ **Category Display Fix**:
+  - Products table now shows category names correctly
+  - Proper data mapping in service layer
+
+#### 🧪 API Testing Infrastructure
+- ✅ **Test Routes Module** (`/api/test`):
+  - `GET /api/test/endpoints`: Tests all 11 database tables
+  - `GET /api/test/routes`: Lists all available API routes
+  - `GET /api/test/health`: Quick health check with metrics
+- ✅ **Database Validation**:
+  - Tests: products, categories, inventory, warehouses, users, transactions
+  - Production tests: production_orders, production_sections, production_processes, scan_logs
+  - Returns counts and status for each table
+- ✅ **Health Monitoring**:
+  - System status (healthy/unhealthy)
+  - Database connection status
+  - Uptime tracking (seconds)
+  - Memory usage (MB)
+
+#### 🗄️ Database Enhancements
+- ✅ **Production Tables**:
+  - `production_sections`: 5 manufacturing sections
+  - `production_orders`: Order management with auto-generated IDs
+  - `production_processes`: Process tracking with status and timestamps
+  - `scan_logs`: Barcode scanning history with location tracking
+- ✅ **Type Workaround**:
+  - Used `(prisma as any).table_name` for underscore-named models
+  - Maintains type safety where possible
+  - Workaround for Prisma TypeScript limitations
+
 ### Future Enhancements
 - [ ] Code splitting to reduce bundle size
 - [ ] Progressive Web App (PWA) support
@@ -847,6 +945,8 @@ VITE_FIREBASE_PROJECT_ID="your-project-id"
 - [ ] Batch operations for bulk updates
 - [ ] Advanced search with filters
 - [ ] Role-based UI customization
+- [ ] Production process individual updates with quantity tracking
+- [ ] Barcode scanning for production process completion
 
 ---
 
@@ -941,7 +1041,9 @@ VITE_FIREBASE_PROJECT_ID="your-project-id"
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0.0 | Nov 2024 | Initial release - POC Phase 1 |
+| 1.0.0 | Nov 29, 2024 | Initial release - POC Phase 1 |
+| 1.1.0 | Nov 30, 2024 | Enhanced UX with SweetAlert2, production processes workflow, multi-language completion, search improvements |
+| 2.0.0 | Nov 30, 2024 | **Phase 3 Complete**: Full production management system, responsive design, API testing infrastructure, scan logs, auto-complete workflows |
 
 ---
 
@@ -961,5 +1063,5 @@ All rights reserved © 2024 SKP
 
 ---
 
-**Last Updated**: November 29, 2024  
-**Document Version**: 1.0.0
+**Last Updated**: November 30, 2024  
+**Document Version**: 2.0.0

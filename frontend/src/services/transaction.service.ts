@@ -73,6 +73,8 @@ export const transactionService = {
     status?: string;
     productId?: string;
     userId?: string;
+    dateFrom?: string;
+    dateTo?: string;
     page?: number;
     limit?: number;
   }) => {

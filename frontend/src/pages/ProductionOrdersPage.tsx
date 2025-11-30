@@ -9,7 +9,10 @@ import Swal from 'sweetalert2';
 export const ProductionOrdersPage = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
   const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>(getTodayDate());
+  const [dateTo, setDateTo] = useState<string>(getTodayDate());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showProcessesModal, setShowProcessesModal] = useState(false);
@@ -22,8 +25,8 @@ export const ProductionOrdersPage = () => {
   });
 
   const { data: orders = [], isLoading } = useQuery({
-    queryKey: ['production-orders', selectedStatus],
-    queryFn: () => productionService.getProductionOrders(selectedStatus || undefined),
+    queryKey: ['production-orders', selectedStatus, dateFrom, dateTo],
+    queryFn: () => productionService.getProductionOrders(selectedStatus || undefined, dateFrom, dateTo),
   });
 
   const { data: productsData } = useQuery({
@@ -170,7 +173,17 @@ export const ProductionOrdersPage = () => {
     }
   };
 
-  const handleProcessStatusChange = async (processId: string, newStatus: string, confirmMsg: string) => {
+  const handleProcessStatusChange = async (processId: string | null, sectionId: string, orderId: string, newStatus: string, confirmMsg: string) => {
+    // If process doesn't exist, show error
+    if (!processId) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Process not created',
+        text: 'Please wait for the order to be fully initialized with all processes.'
+      });
+      return;
+    }
+
     const result = await Swal.fire({
       title: confirmMsg,
       icon: 'question',
@@ -198,7 +211,9 @@ export const ProductionOrdersPage = () => {
   };
 
   const openProcessesModal = (order: ProductionOrder) => {
-    setSelectedOrder(order);
+    // Get fresh data from orders list to ensure processes are included
+    const freshOrder = orders.find((o: ProductionOrder) => o.id === order.id) || order;
+    setSelectedOrder(freshOrder);
     setShowProcessesModal(true);
   };
 
@@ -249,23 +264,49 @@ export const ProductionOrdersPage = () => {
           </button>
         </div>
 
-        {/* Status Filter */}
+        {/* Filters */}
         <div className="card p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('production.filterByStatus')}
-          </label>
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="input max-w-xs"
-          >
-            <option value="">{t('production.allStatus')}</option>
-            <option value="PENDING">⏳ {t('production.pending')}</option>
-            <option value="IN_PROGRESS">🔄 {t('production.inProgress')}</option>
-            <option value="COMPLETED">✅ {t('production.completed')}</option>
-            <option value="ON_HOLD">⏸️ {t('production.onHold')}</option>
-            <option value="CANCELLED">❌ {t('production.cancelled')}</option>
-          </select>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('common.from') || 'From Date'}
+              </label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="input w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('common.to') || 'To Date'}
+              </label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="input w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('production.filterByStatus')}
+              </label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="input w-full"
+              >
+                <option value="">{t('production.allStatus')}</option>
+                <option value="PENDING">⏳ {t('production.pending')}</option>
+                <option value="IN_PROGRESS">🔄 {t('production.inProgress')}</option>
+                <option value="COMPLETED">✅ {t('production.completed')}</option>
+                <option value="ON_HOLD">⏸️ {t('production.onHold')}</option>
+                <option value="CANCELLED">❌ {t('production.cancelled')}</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Orders List */}
@@ -582,27 +623,27 @@ export const ProductionOrdersPage = () => {
 
         {/* Processes Modal */}
         {showProcessesModal && selectedOrder && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">📊 {t('production.viewProcesses')}</h2>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <h2 className="text-lg sm:text-xl font-bold">📊 {t('production.viewProcesses')}</h2>
                 <button
                   onClick={() => setShowProcessesModal(false)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  className="text-gray-500 hover:text-gray-700 text-xl sm:text-2xl"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">{t('production.orderNo')}</p>
-                    <p className="font-bold text-lg">{selectedOrder.orderNo}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">{t('production.orderNo')}</p>
+                    <p className="font-bold text-base sm:text-lg">{selectedOrder.orderNo}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">{t('production.product')}</p>
-                    <p className="font-semibold">{selectedOrder.product?.name}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">{t('production.product')}</p>
+                    <p className="font-semibold text-sm sm:text-base">{selectedOrder.product?.name}</p>
                     <p className="text-xs text-gray-500">{selectedOrder.product?.sku}</p>
                   </div>
                   <div>
@@ -624,7 +665,7 @@ export const ProductionOrdersPage = () => {
                 </div>
               </div>
 
-              <h3 className="text-lg font-bold mb-4">🔄 {t('production.progress')} ({sections.length} {t('production.sections')})</h3>
+              <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">🔄 {t('production.progress')} ({sections.length} {t('production.sections')})</h3>
 
               {sections.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
@@ -642,36 +683,36 @@ export const ProductionOrdersPage = () => {
                     return (
                       <div
                         key={section.id}
-                        className={`border rounded-lg p-4 ${
+                        className={`border rounded-lg p-3 sm:p-4 ${
                           isCompleted ? 'bg-green-50 border-green-300' :
                           isInProgress ? 'bg-blue-50 border-blue-300' :
                           'bg-gray-50 border-gray-300'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base ${
                               isCompleted ? 'bg-green-600' :
                               isInProgress ? 'bg-blue-600' :
                               'bg-gray-400'
                             }`}>
                               {isCompleted ? '✓' : index + 1}
                             </div>
-                            <div>
-                              <h4 className="font-bold text-lg">{section.code} - {section.name}</h4>
+                            <div className="flex-1">
+                              <h4 className="font-bold text-sm sm:text-lg">{section.code} - {section.name}</h4>
                               {section.description && (
-                                <p className="text-sm text-gray-600">{section.description}</p>
+                                <p className="text-xs sm:text-sm text-gray-600">{section.description}</p>
                               )}
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-left sm:text-right">
                             {isCompleted && (
                               <div>
-                                <span className="inline-block px-3 py-1 bg-green-600 text-white rounded-full text-xs font-semibold mb-1">
+                                <span className="inline-block px-2 sm:px-3 py-1 bg-green-600 text-white rounded-full text-xs font-semibold mb-1">
                                   ✅ {t('production.completed')}
                                 </span>
                                 {process?.quantity > 0 && (
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-xs sm:text-sm text-gray-600">
                                     {t('production.quantity')}: {process.quantity.toLocaleString()}
                                   </p>
                                 )}
@@ -679,18 +720,18 @@ export const ProductionOrdersPage = () => {
                             )}
                             {isInProgress && (
                               <div>
-                                <span className="inline-block px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-semibold mb-1">
+                                <span className="inline-block px-2 sm:px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-semibold mb-1">
                                   🔄 {t('production.inProgress')}
                                 </span>
                                 {process?.quantity > 0 && (
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-xs sm:text-sm text-gray-600">
                                     {t('production.quantity')}: {process.quantity.toLocaleString()}
                                   </p>
                                 )}
                               </div>
                             )}
                             {isPending && (
-                              <span className="inline-block px-3 py-1 bg-gray-400 text-white rounded-full text-xs font-semibold">
+                              <span className="inline-block px-2 sm:px-3 py-1 bg-gray-400 text-white rounded-full text-xs font-semibold">
                                 ⏳ {t('production.pending')}
                               </span>
                             )}
@@ -699,16 +740,17 @@ export const ProductionOrdersPage = () => {
 
                         {/* Process Action Buttons */}
                         {!isCompleted && (
-                          <div className="mt-3 flex gap-2">
+                          <div className="mt-3 flex flex-wrap gap-2">
                             {isPending && (
                               <button
                                 onClick={() => handleProcessStatusChange(
-                                  process?.id || '',
+                                  process?.id || null,
+                                  section.id,
+                                  selectedOrder.id,
                                   'IN_PROGRESS',
                                   t('production.confirmStart')
                                 )}
-                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors"
-                                disabled={!process}
+                                className="px-3 py-1.5 sm:py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors"
                               >
                                 ▶️ {t('production.startProduction')}
                               </button>
@@ -717,10 +759,12 @@ export const ProductionOrdersPage = () => {
                               <button
                                 onClick={() => handleProcessStatusChange(
                                   process.id,
+                                  section.id,
+                                  selectedOrder.id,
                                   'COMPLETED',
                                   t('production.confirmComplete')
                                 )}
-                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors"
+                                className="px-3 py-1.5 sm:py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors"
                               >
                                 ✅ {t('production.completeOrder')}
                               </button>

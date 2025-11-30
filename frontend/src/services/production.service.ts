@@ -104,9 +104,14 @@ const productionService = {
   },
 
   // Get production orders
-  async getProductionOrders(status?: string): Promise<ProductionOrder[]> {
+  async getProductionOrders(status?: string, dateFrom?: string, dateTo?: string): Promise<ProductionOrder[]> {
+    const params: any = {};
+    if (status) params.status = status;
+    if (dateFrom) params.dateFrom = dateFrom;
+    if (dateTo) params.dateTo = dateTo;
+    
     const response = await api.get('/production/orders', {
-      params: status ? { status } : undefined,
+      params: Object.keys(params).length > 0 ? params : undefined,
     });
     // Normalize: map 'products' to 'product' for easier access
     const orders = response.data.data.map((order: any) => ({

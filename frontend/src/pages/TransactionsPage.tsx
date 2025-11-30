@@ -6,17 +6,22 @@ import { transactionService } from '@/services/transaction.service';
 
 export const TransactionsPage = () => {
   const { t } = useLanguage();
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [dateFrom, setDateFrom] = useState<string>(getTodayDate());
+  const [dateTo, setDateTo] = useState<string>(getTodayDate());
   const [page, setPage] = useState(1);
 
   // Real transactions query
   const { data, isLoading } = useQuery({
-    queryKey: ['transactions', page, statusFilter, typeFilter],
+    queryKey: ['transactions', page, statusFilter, typeFilter, dateFrom, dateTo],
     queryFn: () =>
       transactionService.getAll({
         type: typeFilter !== 'ALL' ? typeFilter : undefined,
         status: statusFilter !== 'ALL' ? statusFilter : undefined,
+        dateFrom,
+        dateTo,
         page,
         limit: 20,
       }),
@@ -75,6 +80,26 @@ export const TransactionsPage = () => {
           </h1>
 
           {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-3">
+            <div className="flex-1">
+              <label className="block text-xs text-gray-600 mb-1">{t('common.from') || 'From'}</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="input w-full"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-gray-600 mb-1">{t('common.to') || 'To'}</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="input w-full"
+              />
+            </div>
+          </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <select
               value={typeFilter}

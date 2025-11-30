@@ -165,6 +165,13 @@ export const productService = {
       // Generate unique ID
       const generateId = () => Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
       
+      // Generate barcode if not provided
+      const generateBarcode = () => {
+        const timestamp = Date.now().toString();
+        const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+        return `BC${timestamp.slice(-8)}${random}`;
+      };
+      
       // Clean up empty strings to undefined for optional fields
       const cleanData = {
         id: generateId(),
@@ -172,7 +179,7 @@ export const productService = {
         name: data.name,
         createdById: data.createdById,
         updatedAt: new Date(),
-        barcode: data.barcode && data.barcode.trim() !== '' ? data.barcode : undefined,
+        barcode: data.barcode && data.barcode.trim() !== '' ? data.barcode : generateBarcode(),
         description: data.description && data.description.trim() !== '' ? data.description : undefined,
         categoryId: data.categoryId && data.categoryId.trim() !== '' ? data.categoryId : undefined,
         unit: data.unit || 'piece',
