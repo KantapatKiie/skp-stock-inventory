@@ -1,6 +1,7 @@
 import { QRCodeSVG } from "qrcode.react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { Product } from "@/types";
+import logoSkp from "@/assets/images/logo-skp.webp";
 
 interface QRCodePrintModalProps {
   isOpen: boolean;
@@ -74,8 +75,17 @@ export default function QRCodePrintModal({
                 <div
                   key={product.id}
                   className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white print:border-solid print:border-gray-400 print:page-break-inside-avoid"
-                  style={{ minHeight: "280px" }}
+                  style={{ minHeight: "320px" }}
                 >
+                  {/* Logo */}
+                  <div className="flex justify-center mb-2">
+                    <img 
+                      src={logoSkp} 
+                      alt="SKP Logo" 
+                      className="h-12 w-auto object-contain"
+                    />
+                  </div>
+
                   {/* QR Code */}
                   <div className="flex justify-center mb-3">
                     <QRCodeSVG

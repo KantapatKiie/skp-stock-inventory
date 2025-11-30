@@ -42,7 +42,7 @@ export const ProductsPage = () => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["products", search, page],
-    queryFn: () => productService.getAll({ search, page, limit: 10 }),
+    queryFn: () => productService.getAll({ search, page, limit: 20 }),
     placeholderData: (previousData) => previousData,
   });
 
