@@ -190,29 +190,65 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
       <div className="flex">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:block w-64 bg-white shadow-sm fixed left-0 top-16 h-[calc(100vh-4rem)] overflow-y-auto">
-          <nav className="p-4 space-y-2">
-            {filteredNavItems.map((item) => (
+        <aside className="hidden lg:block w-72 bg-gradient-to-b from-[#219C4A]/10 via-white to-white shadow-lg fixed left-0 top-16 h-[calc(100vh-4rem)] overflow-y-auto border-r border-gray-100">
+          {/* User Profile Card */}
+          <div className="p-6 bg-gradient-to-br from-[#219C4A] to-[#1a7d3a] text-white mx-4 mt-4 rounded-xl shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl font-bold border-2 border-white/30">
+                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-xs text-white/80 truncate">{user?.email}</p>
+                <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
+                  {user?.role}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="p-4 space-y-1.5 mt-2">
+            {filteredNavItems.map((item, index) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  `group flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
                     isActive
-                      ? "bg-primary-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "bg-gradient-to-r from-[#219C4A] to-[#1a7d3a] text-white shadow-lg shadow-green-500/30 scale-[1.02]"
+                      : "text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 hover:scale-[1.01] hover:shadow-sm"
                   }`
                 }
+                style={{
+                  animationDelay: `${index * 50}ms`
+                }}
               >
-                <span className="text-xl">{item.icon}</span>
-                <span className="font-medium">{item.label}</span>
+                <span className="text-2xl group-hover:scale-110 transition-transform duration-200">
+                  {item.icon}
+                </span>
+                <span className="font-medium text-sm">{item.label}</span>
+                {/* Active Indicator */}
+                <span className={`ml-auto w-1.5 h-1.5 rounded-full transition-all duration-200 ${
+                  ({ isActive }: { isActive: boolean }) => isActive ? 'bg-white scale-100' : 'bg-transparent scale-0'
+                }`} />
               </NavLink>
             ))}
           </nav>
+
+          {/* Footer Info */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-gray-50 to-transparent">
+            <div className="text-center text-xs text-gray-500">
+              <p className="font-medium">SKP Stock System</p>
+              <p className="text-[10px] mt-1">v2.0.0 © 2024</p>
+            </div>
+          </div>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 lg:ml-64">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 lg:ml-72">{children}</main>
       </div>
     </div>
   );

@@ -67,7 +67,7 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-100 to-primary-500 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#219C4A] px-8">
       <div className="flex flex-col lg:flex-row gap-6 w-full">
         {/* Landing Image */}
         <div className="hidden lg:block lg:w-4/5">
