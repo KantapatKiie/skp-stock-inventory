@@ -139,34 +139,63 @@ export const productService = {
   },
 
   async create(data: CreateProductData) {
-    // Check if SKU already exists
-    const existingSku = await prisma.products.findUnique({
-      where: { sku: data.sku },
-    });
+    try {
+      console.log('Creating product with data:', JSON.stringify(data, null, 2));
 
-    if (existingSku) {
-      throw new AppError('SKU already exists', 400);
-    }
-
-    // Check if barcode already exists
-    if (data.barcode) {
-      const existingBarcode = await prisma.products.findUnique({
-        where: { barcode: data.barcode },
+      // Check if SKU already exists
+      const existingSku = await prisma.products.findUnique({
+        where: { sku: data.sku },
       });
 
-      if (existingBarcode) {
-        throw new AppError('Barcode already exists', 400);
+      if (existingSku) {
+        throw new AppError('SKU already exists', 400);
       }
+
+      // Check if barcode already exists
+      if (data.barcode) {
+        const existingBarcode = await prisma.products.findUnique({
+          where: { barcode: data.barcode },
+        });
+
+        if (existingBarcode) {
+          throw new AppError('Barcode already exists', 400);
+        }
+      }
+
+      // Generate unique ID
+      const generateId = () => Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+      
+      // Clean up empty strings to undefined for optional fields
+      const cleanData = {
+        id: generateId(),
+        sku: data.sku,
+        name: data.name,
+        createdById: data.createdById,
+        updatedAt: new Date(),
+        barcode: data.barcode && data.barcode.trim() !== '' ? data.barcode : undefined,
+        description: data.description && data.description.trim() !== '' ? data.description : undefined,
+        categoryId: data.categoryId && data.categoryId.trim() !== '' ? data.categoryId : undefined,
+        unit: data.unit || 'piece',
+        minStock: data.minStock || 10,
+        maxStock: data.maxStock || 1000,
+        price: data.price || 0,
+        cost: data.cost || 0,
+        imageUrl: data.imageUrl && data.imageUrl.trim() !== '' ? data.imageUrl : undefined,
+      };
+
+      const product = await prisma.products.create({
+        data: cleanData,
+        include: {
+          categories: true,
+        },
+      });
+
+      console.log('Product created successfully:', product.id);
+      return product;
+    } catch (error) {
+      console.error('Error in product.service.create:', error);
+      throw error;
     }
-
-    const product = await prisma.products.create({
-      data,
-      include: {
-        categories: true,
-      },
-    });
-
-    return product;
   },
 
   async update(id: string, data: UpdateProductData) {

@@ -44,9 +44,11 @@ export interface ProductionOrder {
   notes: string | null;
   createdById: string;
   createdAt: string;
-  product?: any;
+  products?: any; // Prisma relation name
+  product?: any; // Alias for easy access
   createdBy?: any;
   processes?: any[];
+  production_processes?: any[]; // Prisma relation name
 }
 
 export interface CreateScanLogDto {
@@ -65,7 +67,6 @@ export interface CreateScanLogDto {
 }
 
 export interface CreateProductionOrderDto {
-  orderNo: string;
   productId: string;
   targetQuantity: number;
   dueDate?: string;
@@ -107,13 +108,49 @@ const productionService = {
     const response = await api.get('/production/orders', {
       params: status ? { status } : undefined,
     });
-    return response.data.data;
+    // Normalize: map 'products' to 'product' for easier access
+    const orders = response.data.data.map((order: any) => ({
+      ...order,
+      product: order.products || order.product,
+      processes: order.production_processes || order.processes || [],
+    }));
+    return orders;
   },
 
   // Create production order
   async createProductionOrder(data: CreateProductionOrderDto): Promise<ProductionOrder> {
     const response = await api.post('/production/orders', data);
-    return response.data.data;
+    const order = response.data.data;
+    // Normalize: map 'products' to 'product'
+    return {
+      ...order,
+      product: order.products || order.product,
+      processes: order.production_processes || order.processes || [],
+    };
+  },
+
+  // Update order status
+  async updateOrderStatus(
+    orderId: string,
+    data: {
+      status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
+      completedQuantity?: number;
+      notes?: string;
+    }
+  ): Promise<ProductionOrder> {
+    const response = await api.patch(`/production/orders/${orderId}`, data);
+    const order = response.data.data;
+    // Normalize: map 'products' to 'product'
+    return {
+      ...order,
+      product: order.products || order.product,
+      processes: order.production_processes || order.processes || [],
+    };
+  },
+
+  // Delete production order
+  async deleteOrder(orderId: string): Promise<void> {
+    await api.delete(`/production/orders/${orderId}`);
   },
 
   // Update production process

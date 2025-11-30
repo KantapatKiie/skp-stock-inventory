@@ -6,13 +6,6 @@ export const productionController = {
   // Get all production sections
   async getSections(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      // Production sections table not in current schema
-      res.json({
-        status: 'success',
-        data: [],
-      });
-      return;
-
       const sections = await prisma.production_sections.findMany({
         where: { isActive: true },
         orderBy: { sequence: 'asc' },
@@ -55,43 +48,29 @@ export const productionController = {
         locationName,
         sectionId,
         orderId,
-        processId,
         warehouseId,
         latitude,
         longitude,
         notes,
       } = req.body;
 
-      // Scan logs table not in current schema - return mock response
-      res.json({
-        status: 'success',
-        data: {
-          id: Math.random().toString(36).substring(7),
-          productId,
-          actionType,
-          quantity: parseInt(quantity),
-          locationCode,
-          locationName,
-          createdAt: new Date(),
-        },
-      });
-      return;
+      const generateId = () => Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
 
       const scanLog = await prisma.scan_logs.create({
         data: {
+          id: generateId(),
           productId,
           actionType,
           quantity: parseInt(quantity),
-          locationCode,
-          locationName,
-          sectionId,
-          orderId,
-          processId,
-          warehouseId,
+          locationCode: locationCode || null,
+          locationName: locationName || null,
+          sectionId: sectionId || null,
+          orderId: orderId || null,
+          warehouseId: warehouseId || null,
           latitude: latitude ? parseFloat(latitude) : null,
           longitude: longitude ? parseFloat(longitude) : null,
-          notes,
-          scannedById: req.user!.userId,
+          notes: notes || null,
+          scannedById: req.user!.id,
         },
         include: {
           products: true,
@@ -132,14 +111,17 @@ export const productionController = {
               availableQty: inventory.availableQty + quantityChange,
               lastStockIn: actionType === 'RECEIVE' || actionType === 'RETURN' ? new Date() : inventory.lastStockIn,
               lastStockOut: actionType === 'ISSUE' ? new Date() : inventory.lastStockOut,
+              updatedAt: new Date(),
             },
           });
 
           // Create inventory log
-          await prisma.inventoryLog.create({
+          const generateLogId = () => Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+          await prisma.inventory_logs.create({
             data: {
+              id: generateLogId(),
               inventoryId: inventory.id,
-              userId: req.user!.userId,
+              userId: req.user!.id,
               action: actionType,
               quantityBefore: inventory.quantity,
               quantityAfter: inventory.quantity + quantityChange,
@@ -162,13 +144,6 @@ export const productionController = {
   // Get scan logs
   async getScanLogs(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      // Scan logs table not in current schema - return empty array
-      res.json({
-        status: 'success',
-        data: [],
-      });
-      return;
-
       const { productId, actionType, sectionId, limit = '50' } = req.query;
 
       const where: any = {};
@@ -180,10 +155,10 @@ export const productionController = {
         where,
         include: {
           products: true,
-          section: true,
-          warehouse: true,
-          order: true,
-          scannedBy: {
+          production_sections: true,
+          warehouses: true,
+          production_orders: true,
+          users_scan_logs_scannedByIdTousers: {
             select: {
               id: true,
               firstName: true,
@@ -207,13 +182,6 @@ export const productionController = {
   // Get production orders
   async getProductionOrders(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      // Production orders table not in current schema - return empty array
-      res.json({
-        status: 'success',
-        data: [],
-      });
-      return;
-      
       const { status } = req.query;
 
       const where: any = {};
@@ -252,16 +220,50 @@ export const productionController = {
   // Create production order
   async createProductionOrder(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { orderNo, productId, targetQuantity, dueDate, notes } = req.body;
+      const { productId, targetQuantity, dueDate, notes } = req.body;
+
+      const generateId = () => Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+      
+      // Generate unique order number: PO-YYYYMMDD-XXXX
+      const generateOrderNo = async (): Promise<string> => {
+        const date = new Date();
+        const dateStr = date.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+        
+        // Find the last order number for today
+        const todayOrders = await prisma.production_orders.findMany({
+          where: {
+            orderNo: {
+              startsWith: `PO-${dateStr}-`,
+            },
+          },
+          orderBy: {
+            orderNo: 'desc',
+          },
+          take: 1,
+        });
+
+        let sequence = 1;
+        if (todayOrders.length > 0) {
+          const lastOrderNo = todayOrders[0].orderNo;
+          const lastSequence = parseInt(lastOrderNo.split('-')[2]);
+          sequence = lastSequence + 1;
+        }
+
+        return `PO-${dateStr}-${sequence.toString().padStart(4, '0')}`;
+      };
+
+      const orderNo = await generateOrderNo();
 
       const order = await prisma.production_orders.create({
         data: {
+          id: generateId(),
           orderNo,
           productId,
           targetQuantity: parseInt(targetQuantity),
           dueDate: dueDate ? new Date(dueDate) : null,
-          notes,
-          createdById: req.user!.userId,
+          notes: notes || null,
+          createdById: req.user!.id,
+          updatedAt: new Date(),
         },
         include: {
           products: true,
@@ -275,9 +277,143 @@ export const productionController = {
         },
       });
 
+      // Create production processes for all active sections
+      const sections = await prisma.production_sections.findMany({
+        where: { isActive: true },
+        orderBy: { sequence: 'asc' },
+      });
+
+      for (const section of sections) {
+        await prisma.production_processes.create({
+          data: {
+            id: generateId(),
+            orderId: order.id,
+            sectionId: section.id,
+            sequence: section.sequence,
+            status: 'PENDING',
+            quantity: 0,
+          },
+        });
+      }
+
+      // Fetch order with processes
+      const orderWithProcesses = await prisma.production_orders.findUnique({
+        where: { id: order.id },
+        include: {
+          products: true,
+          users_production_orders_createdByIdTousers: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          production_processes: {
+            include: {
+              production_sections: true,
+            },
+            orderBy: {
+              sequence: 'asc',
+            },
+          },
+        },
+      });
+
+      res.json({
+        status: 'success',
+        data: orderWithProcesses,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // Update production order status
+  async updateOrderStatus(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { status, completedQuantity, notes } = req.body;
+
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      if (status) updateData.status = status;
+      if (completedQuantity !== undefined) updateData.completedQuantity = parseInt(completedQuantity);
+      if (notes !== undefined) updateData.notes = notes;
+
+      // Auto-set dates based on status
+      if (status === 'IN_PROGRESS' && !updateData.startDate) {
+        updateData.startDate = new Date();
+      }
+      if (status === 'COMPLETED') {
+        updateData.completedDate = new Date();
+        
+        // Get order to set completedQuantity = targetQuantity
+        const existingOrder = await prisma.production_orders.findUnique({
+          where: { id },
+          select: { targetQuantity: true }
+        });
+        if (existingOrder && completedQuantity === undefined) {
+          updateData.completedQuantity = existingOrder.targetQuantity;
+        }
+
+        // Auto-complete all processes when order is completed
+        await prisma.production_processes.updateMany({
+          where: { 
+            orderId: id,
+            status: { not: 'COMPLETED' }
+          },
+          data: {
+            status: 'COMPLETED',
+            endTime: new Date(),
+            quantity: existingOrder?.targetQuantity || 0
+          }
+        });
+      }
+
+      const order = await prisma.production_orders.update({
+        where: { id },
+        data: updateData,
+        include: {
+          products: true,
+          users_production_orders_createdByIdTousers: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          production_processes: {
+            include: {
+              production_sections: true,
+            },
+            orderBy: { sequence: 'asc' },
+          },
+        },
+      });
+
       res.json({
         status: 'success',
         data: order,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // Delete production order
+  async deleteOrder(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      await prisma.production_orders.delete({
+        where: { id },
+      });
+
+      res.json({
+        status: 'success',
+        message: 'Production order deleted successfully',
       });
     } catch (error) {
       next(error);

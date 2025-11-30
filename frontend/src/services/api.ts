@@ -22,6 +22,24 @@ class ApiClient {
       (config: InternalAxiosRequestConfig) => {
         const token = localStorage.getItem('accessToken');
         if (token && config.headers) {
+          // Check if token is expired
+          try {
+            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+            const expiryTime = tokenPayload.exp * 1000; // Convert to milliseconds
+            const currentTime = Date.now();
+            
+            if (currentTime >= expiryTime) {
+              // Token expired, logout immediately
+              localStorage.removeItem('accessToken');
+              localStorage.removeItem('refreshToken');
+              localStorage.removeItem('auth-storage');
+              window.location.href = '/login';
+              return Promise.reject(new Error('Token expired'));
+            }
+          } catch (e) {
+            console.error('Error checking token expiry:', e);
+          }
+          
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -65,6 +83,7 @@ class ApiClient {
             // Clear tokens and redirect to login
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
+            localStorage.removeItem('auth-storage');
             window.location.href = '/login';
             return Promise.reject(refreshError);
           }

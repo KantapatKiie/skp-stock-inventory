@@ -44,6 +44,7 @@ export interface Product {
   description?: string;
   categoryId?: string;
   category?: Category;
+  categories?: Category; // Prisma relation name
   unit: string;
   minStock: number;
   maxStock: number;

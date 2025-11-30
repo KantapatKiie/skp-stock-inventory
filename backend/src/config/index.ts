@@ -10,7 +10,7 @@ export const config = {
   jwt: {
     secret: (process.env.JWT_SECRET || 'your-secret-key') as string,
     refreshSecret: (process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key') as string,
-    expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as string,
+    expiresIn: (process.env.JWT_EXPIRES_IN || '1d') as string,
     refreshExpiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as string,
   },
 

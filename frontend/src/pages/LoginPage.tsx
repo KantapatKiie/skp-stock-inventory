@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useLanguage } from "@/contexts/LanguageContext";
-import toast from "react-hot-toast";
+import Swal from "sweetalert2";
 import logoSKP from "@/assets/images/logo-skp.webp";
 import landingImage from "@/assets/images/landing-image.webp";
 
@@ -43,10 +43,19 @@ export const LoginPage = () => {
         localStorage.removeItem("rememberedPassword");
       }
 
-      toast.success(t("auth.loginSuccess"));
+      Swal.fire({
+        icon: 'success',
+        title: t("auth.loginSuccess"),
+        showConfirmButton: false,
+        timer: 1500
+      });
       navigate("/");
     } catch (error: any) {
-      toast.error(error.response?.data?.message || t("auth.loginFailed"));
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || t("auth.loginFailed")
+      });
     } finally {
       setIsLoading(false);
     }

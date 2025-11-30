@@ -6,6 +6,7 @@ import categoryRoutes from './category.routes';
 import productionRoutes from './production.routes';
 import transactionRoutes from './transaction.routes';
 import userRoutes from './user.routes';
+import testRoutes from './test.routes';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.use('/categories', categoryRoutes);
 router.use('/production', productionRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/users', userRoutes);
+router.use('/test', testRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

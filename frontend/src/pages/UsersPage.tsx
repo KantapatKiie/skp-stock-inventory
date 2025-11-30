@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
-import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 import { useAuthStore } from '@/store/authStore';
 import { userService } from '@/services/user.service';
 
@@ -41,13 +41,22 @@ export const UsersPage = () => {
       }
     },
     onSuccess: () => {
-      toast.success(editingUser ? t('common.updateSuccess') : t('common.createSuccess'));
+      Swal.fire({
+        icon: 'success',
+        title: editingUser ? t('common.updateSuccess') : t('common.createSuccess'),
+        showConfirmButton: false,
+        timer: 1500
+      });
       queryClient.invalidateQueries({ queryKey: ['users'] });
       resetForm();
       setShowModal(false);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || t('common.error'));
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || t('common.error')
+      });
     },
   });
 
@@ -55,11 +64,20 @@ export const UsersPage = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => userService.delete(id),
     onSuccess: () => {
-      toast.success(t('common.deleteSuccess'));
+      Swal.fire({
+        icon: 'success',
+        title: t('common.deleteSuccess'),
+        showConfirmButton: false,
+        timer: 1500
+      });
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || t('common.error'));
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || t('common.error')
+      });
     },
   });
 
@@ -68,11 +86,19 @@ export const UsersPage = () => {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       userService.toggleActive(id, isActive),
     onSuccess: () => {
-      toast.success(t('common.updateSuccess'));
+      Swal.fire({
+        icon: 'success',
+        title: t('common.updateSuccess'),
+        showConfirmButton: false,
+        timer: 1500
+      });
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: () => {
-      toast.error(t('common.error'));
+      Swal.fire({
+        icon: 'error',
+        title: t('common.error')
+      });
     },
   });
 
@@ -108,8 +134,18 @@ export const UsersPage = () => {
     saveMutation.mutate(submitData);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm(t('users.confirmDelete'))) {
+  const handleDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: t('users.confirmDelete'),
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: t('common.confirm') || 'Confirm',
+      cancelButtonText: t('common.cancel') || 'Cancel',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280'
+    });
+    
+    if (result.isConfirmed) {
       deleteMutation.mutate(id);
     }
   };

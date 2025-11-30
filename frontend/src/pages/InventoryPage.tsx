@@ -4,7 +4,7 @@ import { Layout } from "@/components/Layout";
 import { inventoryService } from "@/services/inventory.service";
 import { productService } from "@/services/product.service";
 import productionService from "@/services/production.service";
-import toast from "react-hot-toast";
+import Swal from "sweetalert2";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export const InventoryPage = () => {
@@ -40,14 +40,23 @@ export const InventoryPage = () => {
   const adjustMutation = useMutation({
     mutationFn: (data: any) => inventoryService.adjustStock(data),
     onSuccess: () => {
-      toast.success("Stock adjusted successfully!");
+      Swal.fire({
+        icon: 'success',
+        title: 'Stock adjusted successfully!',
+        showConfirmButton: false,
+        timer: 1500
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory-list"] });
       queryClient.invalidateQueries({ queryKey: ["products-inventory"] });
       resetForm();
       setShowModal(false);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to adjust stock");
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || "Failed to adjust stock"
+      });
     },
   });
 
@@ -63,7 +72,10 @@ export const InventoryPage = () => {
     e.preventDefault();
 
     if (!selectedProduct || !warehouse || !quantity) {
-      toast.error(t("common.fillRequired"));
+      Swal.fire({
+        icon: 'error',
+        title: t("common.fillRequired")
+      });
       return;
     }
 
@@ -119,7 +131,7 @@ export const InventoryPage = () => {
         <div className="card p-4">
           <input
             type="text"
-            placeholder="Search by product name, SKU, or warehouse..."
+            placeholder={t("inventory.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="input w-full"
@@ -129,13 +141,13 @@ export const InventoryPage = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="card p-4">
-            <h3 className="text-sm text-gray-600">Total Inventory Items</h3>
+            <h3 className="text-sm text-gray-600">{t("inventory.totalItems")}</h3>
             <p className="text-3xl font-bold text-gray-900 mt-2">
               {inventoryList.length}
             </p>
           </div>
           <div className="card p-4">
-            <h3 className="text-sm text-gray-600">Total Quantity</h3>
+            <h3 className="text-sm text-gray-600">{t("inventory.totalQuantity")}</h3>
             <p className="text-3xl font-bold text-blue-600 mt-2">
               {inventoryList
                 .reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0)
@@ -143,7 +155,7 @@ export const InventoryPage = () => {
             </p>
           </div>
           <div className="card p-4">
-            <h3 className="text-sm text-gray-600">Available</h3>
+            <h3 className="text-sm text-gray-600">{t("inventory.available")}</h3>
             <p className="text-3xl font-bold text-green-600 mt-2">
               {inventoryList
                 .reduce(
@@ -162,28 +174,31 @@ export const InventoryPage = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Product
+                    {t("products.productName")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    SKU
+                    {t("products.sku")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Warehouse
+                    {t("inventory.warehouse")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Quantity
+                    {t("inventory.quantity")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Available
+                    {t("inventory.available")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Reserved
+                    {t("inventory.reserved")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Min Stock
+                    {t("products.minStock")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
+                    {t("reports.status")}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    {t("common.actions")}
                   </th>
                 </tr>
               </thead>
@@ -191,10 +206,10 @@ export const InventoryPage = () => {
                 {filteredInventory.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-6 py-12 text-center text-gray-500"
                     >
-                      No inventory records found
+                      {t("inventory.noRecords")}
                     </td>
                   </tr>
                 ) : (
@@ -231,13 +246,43 @@ export const InventoryPage = () => {
                         <td className="px-6 py-4">
                           {isLowStock ? (
                             <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">
-                              ⚠️ Low Stock
+                              ⚠️ {t("inventory.lowStock")}
                             </span>
                           ) : (
                             <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">
-                              ✅ Normal
+                              ✅ {t("inventory.normal")}
                             </span>
                           )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedProduct(inv.productId);
+                                setWarehouse(inv.warehouseId);
+                                setType("IN");
+                                setQuantity("10");
+                                setShowModal(true);
+                              }}
+                              className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded text-xs font-medium transition-colors"
+                              title={t("scanner.addStock")}
+                            >
+                              ➕ {t("scanner.addStock")}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedProduct(inv.productId);
+                                setWarehouse(inv.warehouseId);
+                                setType("OUT");
+                                setQuantity("10");
+                                setShowModal(true);
+                              }}
+                              className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium transition-colors"
+                              title={t("scanner.removeStock")}
+                            >
+                              ➖ {t("scanner.removeStock")}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -296,17 +341,17 @@ export const InventoryPage = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Transaction Type
+                    {t("inventory.transactionType")}
                   </label>
                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value as any)}
                     className="input"
                   >
-                    <option value="IN">📥 IN - Receive stock</option>
-                    <option value="OUT">📤 OUT - Issue stock</option>
+                    <option value="IN">📥 {t("inventory.in")} - {t("inventory.receiveStock")}</option>
+                    <option value="OUT">📤 {t("inventory.out")} - {t("inventory.issueStock")}</option>
                     <option value="ADJUSTMENT">
-                      📝 ADJUSTMENT - Adjust quantity
+                      📝 {t("inventory.adjustment")} - {t("inventory.adjustQuantity")}
                     </option>
                   </select>
                 </div>

@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { Toaster } from "react-hot-toast";
+import { useEffect } from "react";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -13,6 +13,7 @@ import { InventoryPage } from "./pages/InventoryPage";
 import { TransactionsPage } from "./pages/TransactionsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { startTokenExpiryChecker } from "./utils/tokenChecker";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +25,16 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  useEffect(() => {
+    // Start token expiry checker
+    const intervalId = startTokenExpiryChecker();
+    
+    // Cleanup on unmount
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter
@@ -111,7 +122,6 @@ function App() {
         </Routes>
       </BrowserRouter>
 
-      <Toaster position="top-right" />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

@@ -12,11 +12,13 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting - relaxed for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: config.isDevelopment ? 1000 : 200, // 1000 for dev, 200 for production
   message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 app.use('/api/', limiter);
@@ -63,6 +65,11 @@ if (config.isDevelopment) {
 
 // Static files
 app.use('/uploads', express.static('uploads'));
+
+// Health check endpoint (no auth required)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Routes
 app.use('/api', routes);

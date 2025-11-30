@@ -55,27 +55,29 @@ model inventory_logs {
 }
 
 model products {
-  id                                String         @id
-  sku                               String         @unique
-  barcode                           String?        @unique
+  id                                String              @id
+  sku                               String              @unique
+  barcode                           String?             @unique
   name                              String
   description                       String?
   categoryId                        String?
-  unit                              String         @default("piece")
-  minStock                          Int            @default(10)
-  maxStock                          Int            @default(1000)
-  price                             Decimal        @default(0) @db.Decimal(10, 2)
-  cost                              Decimal        @default(0) @db.Decimal(10, 2)
+  unit                              String              @default("piece")
+  minStock                          Int                 @default(10)
+  maxStock                          Int                 @default(1000)
+  price                             Decimal             @default(0) @db.Decimal(10, 2)
+  cost                              Decimal             @default(0) @db.Decimal(10, 2)
   imageUrl                          String?
-  isActive                          Boolean        @default(true)
+  isActive                          Boolean             @default(true)
   createdById                       String
   updatedById                       String?
-  createdAt                         DateTime       @default(now())
+  createdAt                         DateTime            @default(now())
   updatedAt                         DateTime
   inventory                         inventory[]
-  categories                        categories?    @relation(fields: [categoryId], references: [id])
-  users_products_createdByIdTousers users          @relation("products_createdByIdTousers", fields: [createdById], references: [id])
-  users_products_updatedByIdTousers users?         @relation("products_updatedByIdTousers", fields: [updatedById], references: [id])
+  categories                        categories?         @relation(fields: [categoryId], references: [id])
+  users_products_createdByIdTousers users               @relation("products_createdByIdTousers", fields: [createdById], references: [id])
+  users_products_updatedByIdTousers users?              @relation("products_updatedByIdTousers", fields: [updatedById], references: [id])
+  production_orders                 production_orders[]
+  scan_logs                         scan_logs[]
   transactions                      transactions[]
 
   @@index([barcode])
@@ -120,20 +122,22 @@ model transactions {
 }
 
 model users {
-  id                                   String           @id
-  email                                String           @unique
-  password                             String
-  firstName                            String
-  lastName                             String
-  role                                 Role             @default(STAFF)
-  isActive                             Boolean          @default(true)
-  createdAt                            DateTime         @default(now())
-  updatedAt                            DateTime
-  inventory_logs                       inventory_logs[]
-  products_products_createdByIdTousers products[]       @relation("products_createdByIdTousers")
-  products_products_updatedByIdTousers products[]       @relation("products_updatedByIdTousers")
-  refresh_tokens                       refresh_tokens[]
-  transactions                         transactions[]
+  id                                              String              @id
+  email                                           String              @unique
+  password                                        String
+  firstName                                       String
+  lastName                                        String
+  role                                            Role                @default(STAFF)
+  isActive                                        Boolean             @default(true)
+  createdAt                                       DateTime            @default(now())
+  updatedAt                                       DateTime
+  inventory_logs                                  inventory_logs[]
+  products_products_createdByIdTousers            products[]          @relation("products_createdByIdTousers")
+  products_products_updatedByIdTousers            products[]          @relation("products_updatedByIdTousers")
+  production_orders_createdByIdTousers            production_orders[] @relation("production_orders_createdByIdTousers")
+  refresh_tokens                                  refresh_tokens[]
+  scan_logs_scannedByIdTousers                    scan_logs[]         @relation("scan_logs_scannedByIdTousers")
+  transactions                                    transactions[]
 }
 
 model warehouses {
@@ -146,8 +150,98 @@ model warehouses {
   createdAt                                             DateTime       @default(now())
   updatedAt                                             DateTime
   inventory                                             inventory[]
+  scan_logs                                             scan_logs[]
   transactions_transactions_fromWarehouseIdTowarehouses transactions[] @relation("transactions_fromWarehouseIdTowarehouses")
   transactions_transactions_toWarehouseIdTowarehouses   transactions[] @relation("transactions_toWarehouseIdTowarehouses")
+}
+
+model production_sections {
+  id                    String                  @id
+  code                  String                  @unique
+  name                  String
+  description           String?
+  sequence              Int
+  isActive              Boolean                 @default(true)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  production_processes  production_processes[]
+  scan_logs             scan_logs[]
+
+  @@index([sequence])
+}
+
+model production_orders {
+  id                                              String                 @id
+  orderNo                                         String                 @unique
+  productId                                       String
+  targetQuantity                                  Int
+  completedQuantity                               Int                    @default(0)
+  status                                          ProductionOrderStatus  @default(PENDING)
+  startDate                                       DateTime?
+  dueDate                                         DateTime?
+  completedDate                                   DateTime?
+  notes                                           String?
+  createdById                                     String
+  createdAt                                       DateTime               @default(now())
+  updatedAt                                       DateTime
+  products                                        products               @relation(fields: [productId], references: [id])
+  users_production_orders_createdByIdTousers      users                  @relation("production_orders_createdByIdTousers", fields: [createdById], references: [id])
+  production_processes                            production_processes[]
+  scan_logs                                       scan_logs[]
+
+  @@index([productId])
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+model production_processes {
+  id                   String              @id
+  orderId              String
+  sectionId            String
+  sequence             Int
+  status               ProcessStatus       @default(PENDING)
+  quantity             Int                 @default(0)
+  startTime            DateTime?
+  endTime              DateTime?
+  notes                String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime
+  production_orders    production_orders   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  production_sections  production_sections @relation(fields: [sectionId], references: [id])
+
+  @@index([orderId])
+  @@index([sectionId])
+  @@index([sequence])
+}
+
+model scan_logs {
+  id                                    String               @id
+  productId                             String
+  actionType                            ScanActionType
+  quantity                              Int
+  locationCode                          String?
+  locationName                          String?
+  sectionId                             String?
+  orderId                               String?
+  warehouseId                           String?
+  latitude                              Float?
+  longitude                             Float?
+  notes                                 String?
+  scannedById                           String
+  scannedAt                             DateTime             @default(now())
+  products                              products             @relation(fields: [productId], references: [id])
+  production_sections                   production_sections? @relation(fields: [sectionId], references: [id])
+  production_orders                     production_orders?   @relation(fields: [orderId], references: [id])
+  warehouses                            warehouses?          @relation(fields: [warehouseId], references: [id])
+  users_scan_logs_scannedByIdTousers    users                @relation("scan_logs_scannedByIdTousers", fields: [scannedById], references: [id])
+
+  @@index([productId])
+  @@index([scannedAt])
+  @@index([actionType])
+  @@index([sectionId])
+  @@index([orderId])
+  @@index([warehouseId])
 }
 
 enum Role {
@@ -167,4 +261,29 @@ enum TransactionType {
   OUT
   ADJUSTMENT
   TRANSFER
+}
+
+enum ProductionOrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum ProcessStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum ScanActionType {
+  RECEIVE
+  ISSUE
+  RETURN
+  MOVE
+  INSPECT
+  COMPLETE
 }

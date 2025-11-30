@@ -20,6 +20,8 @@ router.get('/scan-logs', productionController.getScanLogs);
 // Production orders
 router.get('/orders', productionController.getProductionOrders);
 router.post('/orders', productionController.createProductionOrder);
+router.patch('/orders/:id', productionController.updateOrderStatus);
+router.delete('/orders/:id', productionController.deleteOrder);
 
 // Production processes
 router.patch('/processes/:id', productionController.updateProductionProcess);

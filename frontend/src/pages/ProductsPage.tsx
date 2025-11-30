@@ -1,16 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productService } from "@/services/product.service";
+import { categoryService } from "@/services/category.service";
 import { Layout } from "@/components/Layout";
 import { Loading } from "@/components/Loading";
 import { useLanguage } from "@/contexts/LanguageContext";
-import toast from "react-hot-toast";
+import Swal from "sweetalert2";
 
 export const ProductsPage = () => {
   const { t } = useLanguage();
   const queryClient = useQueryClient();
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -29,21 +40,12 @@ export const ProductsPage = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["products", search, page],
     queryFn: () => productService.getAll({ search, page, limit: 10 }),
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: categoriesData } = useQuery({
     queryKey: ["categories"],
-    queryFn: async () => {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/categories`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
-      return response.json();
-    },
+    queryFn: () => categoryService.getAll(),
   });
 
   const categories = categoriesData?.data || [];
@@ -51,13 +53,22 @@ export const ProductsPage = () => {
   const createMutation = useMutation({
     mutationFn: (data: any) => productService.create(data),
     onSuccess: () => {
-      toast.success(t("common.createSuccess"));
+      Swal.fire({
+        icon: 'success',
+        title: t("common.createSuccess"),
+        showConfirmButton: false,
+        timer: 1500
+      });
       queryClient.invalidateQueries({ queryKey: ["products"] });
       resetForm();
       setShowModal(false);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || t("common.error"));
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || t("common.error")
+      });
     },
   });
 
@@ -65,24 +76,42 @@ export const ProductsPage = () => {
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       productService.update(id, data),
     onSuccess: () => {
-      toast.success(t("common.updateSuccess"));
+      Swal.fire({
+        icon: 'success',
+        title: t("common.updateSuccess"),
+        showConfirmButton: false,
+        timer: 1500
+      });
       queryClient.invalidateQueries({ queryKey: ["products"] });
       resetForm();
       setShowModal(false);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || t("common.error"));
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || t("common.error")
+      });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => productService.delete(id),
     onSuccess: () => {
-      toast.success(t("common.deleteSuccess"));
+      Swal.fire({
+        icon: 'success',
+        title: t("common.deleteSuccess"),
+        showConfirmButton: false,
+        timer: 1500
+      });
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || t("common.error"));
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || t("common.error")
+      });
     },
   });
 
@@ -134,8 +163,18 @@ export const ProductsPage = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm(t("products.confirmDelete"))) {
+  const handleDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: t("products.confirmDelete"),
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: t('common.confirm') || 'Confirm',
+      cancelButtonText: t('common.cancel') || 'Cancel',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280'
+    });
+    
+    if (result.isConfirmed) {
       deleteMutation.mutate(id);
     }
   };
@@ -170,8 +209,8 @@ export const ProductsPage = () => {
           <input
             type="text"
             placeholder={t("common.search") + "..."}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="input"
           />
         </div>
@@ -183,25 +222,25 @@ export const ProductsPage = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SKU
+                    {t("products.sku")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    {t("products.productName")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
+                    {t("products.category")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Stock
+                    {t("inventory.quantity")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
+                    {t("products.price")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    {t("reports.status")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {t("common.actions")}
                   </th>
                 </tr>
               </thead>
@@ -229,7 +268,7 @@ export const ProductsPage = () => {
                         {product.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {product.category?.name || "-"}
+                        {product.categories?.name || product.category?.name || "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <span
@@ -253,22 +292,26 @@ export const ProductsPage = () => {
                               : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {product.isActive ? "Active" : "Inactive"}
+                          {product.isActive ? t("users.active") : t("users.inactive")}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={() => handleEdit(product)}
-                          className="text-primary-600 hover:text-primary-900 mr-3"
-                        >
-                          {t("common.edit")}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(product.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          {t("common.delete")}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEdit(product)}
+                            className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-medium transition-colors"
+                            title={t("common.edit")}
+                          >
+                            ✏️ {t("common.edit")}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-medium transition-colors"
+                            title={t("common.delete")}
+                          >
+                            🗑️ {t("common.delete")}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -282,7 +325,7 @@ export const ProductsPage = () => {
           {data && data.pagination.pages > 1 && (
             <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
               <div className="text-sm text-gray-600">
-                Page {data.pagination.page} of {data.pagination.pages}
+                {t("products.page")} {data.pagination.page} {t("products.of")} {data.pagination.pages}
               </div>
               <div className="flex gap-2">
                 <button
@@ -290,14 +333,14 @@ export const ProductsPage = () => {
                   disabled={page === 1}
                   className="btn btn-secondary text-sm"
                 >
-                  Previous
+                  {t("products.previous")}
                 </button>
                 <button
                   onClick={() => setPage(page + 1)}
                   disabled={page === data.pagination.pages}
                   className="btn btn-secondary text-sm"
                 >
-                  Next
+                  {t("products.next")}
                 </button>
               </div>
             </div>
@@ -334,19 +377,19 @@ export const ProductsPage = () => {
                         : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {product.isActive ? "Active" : "Inactive"}
+                    {product.isActive ? t("users.active") : t("users.inactive")}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-gray-600 text-xs">Category</p>
+                    <p className="text-gray-600 text-xs">{t("products.category")}</p>
                     <p className="font-medium">
-                      {product.category?.name || "-"}
+                      {product.categories?.name || product.category?.name || "-"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600 text-xs">Stock</p>
+                    <p className="text-gray-600 text-xs">{t("inventory.quantity")}</p>
                     <p
                       className={`font-medium ${
                         totalStock <= product.minStock
@@ -358,7 +401,7 @@ export const ProductsPage = () => {
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600 text-xs">Price</p>
+                    <p className="text-gray-600 text-xs">{t("products.price")}</p>
                     <p className="font-medium">
                       ฿{product.price.toLocaleString()}
                     </p>
@@ -368,15 +411,15 @@ export const ProductsPage = () => {
                 <div className="flex gap-2 pt-2 border-t border-gray-200">
                   <button
                     onClick={() => handleEdit(product)}
-                    className="flex-1 btn btn-primary text-sm py-2"
+                    className="flex-1 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-sm font-medium transition-colors"
                   >
-                    {t("common.edit")}
+                    ✏️ {t("common.edit")}
                   </button>
                   <button
                     onClick={() => handleDelete(product.id)}
-                    className="flex-1 btn bg-red-600 hover:bg-red-700 text-white text-sm py-2"
+                    className="flex-1 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm font-medium transition-colors"
                   >
-                    {t("common.delete")}
+                    🗑️ {t("common.delete")}
                   </button>
                 </div>
               </div>
@@ -388,7 +431,7 @@ export const ProductsPage = () => {
           {data && data.pagination.pages > 1 && (
             <div className="card p-4">
               <div className="text-sm text-gray-600 text-center mb-3">
-                Page {data.pagination.page} of {data.pagination.pages}
+                {t("products.page")} {data.pagination.page} {t("products.of")} {data.pagination.pages}
               </div>
               <div className="flex gap-2">
                 <button
@@ -396,14 +439,14 @@ export const ProductsPage = () => {
                   disabled={page === 1}
                   className="flex-1 btn btn-secondary text-sm"
                 >
-                  Previous
+                  {t("products.previous")}
                 </button>
                 <button
                   onClick={() => setPage(page + 1)}
                   disabled={page === data.pagination.pages}
                   className="flex-1 btn btn-secondary text-sm"
                 >
-                  Next
+                  {t("products.next")}
                 </button>
               </div>
             </div>
@@ -513,11 +556,11 @@ export const ProductsPage = () => {
                       className="input"
                       required
                     >
-                      <option value="piece">Piece</option>
-                      <option value="box">Box</option>
-                      <option value="set">Set</option>
-                      <option value="ream">Ream</option>
-                      <option value="pack">Pack</option>
+                      <option value="piece">{t("products.unitPiece")}</option>
+                      <option value="box">{t("products.unitBox")}</option>
+                      <option value="set">{t("products.unitSet")}</option>
+                      <option value="ream">{t("products.unitReam")}</option>
+                      <option value="pack">{t("products.unitPack")}</option>
                     </select>
                   </div>
                 </div>
