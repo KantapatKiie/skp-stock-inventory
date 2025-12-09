@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Role } from "@/types";
+import logoSKP from "@/assets/images/logo-skp.webp";
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuthStore();
@@ -102,11 +103,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <img
-                src="/src/assets/images/logo-skp.webp"
-                alt="SKP Logo"
-                className="h-12"
-              />
+              <img src={logoSKP} alt="SKP Logo" className="h-12" />
             </div>
 
             {/* User Info, Language Switcher & Logout */}
@@ -195,7 +192,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="p-6 bg-gradient-to-br from-[#219C4A] to-[#1a7d3a] text-white mx-4 mt-4 rounded-xl shadow-lg">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl font-bold border-2 border-white/30">
-                {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                {user?.firstName?.charAt(0)}
+                {user?.lastName?.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm truncate">
@@ -223,7 +221,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   }`
                 }
                 style={{
-                  animationDelay: `${index * 50}ms`
+                  animationDelay: `${index * 50}ms`,
                 }}
               >
                 <span className="text-2xl group-hover:scale-110 transition-transform duration-200">
@@ -231,9 +229,16 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 </span>
                 <span className="font-medium text-sm">{item.label}</span>
                 {/* Active Indicator */}
-                <span className={`ml-auto w-1.5 h-1.5 rounded-full transition-all duration-200 ${
-                  ({ isActive }: { isActive: boolean }) => isActive ? 'bg-white scale-100' : 'bg-transparent scale-0'
-                }`} />
+                <span
+                  className={`ml-auto w-1.5 h-1.5 rounded-full transition-all duration-200 ${({
+                    isActive,
+                  }: {
+                    isActive: boolean;
+                  }) =>
+                    isActive
+                      ? "bg-white scale-100"
+                      : "bg-transparent scale-0"}`}
+                />
               </NavLink>
             ))}
           </nav>
