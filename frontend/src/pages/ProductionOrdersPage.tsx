@@ -65,16 +65,25 @@ export const ProductionOrdersPage = () => {
   const updateStatusMutation = useMutation({
     mutationFn: ({ orderId, status, completedQuantity }: { orderId: string; status: string; completedQuantity?: number }) =>
       productionService.updateOrderStatus(orderId, { status: status as any, completedQuantity }),
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      // Update selected order with fresh data
+      if (data) {
+        setSelectedOrder(data);
+      }
+      
+      // Invalidate and refetch all production-related queries
+      await queryClient.invalidateQueries({ queryKey: ['production-orders'] });
+      await queryClient.invalidateQueries({ queryKey: ['production-sections'] });
+      await queryClient.refetchQueries({ queryKey: ['production-orders'] });
+      
       Swal.fire({
         icon: 'success',
         title: t('production.updateSuccess'),
         showConfirmButton: false,
         timer: 1500
       });
-      queryClient.invalidateQueries({ queryKey: ['production-orders'] });
+      
       setShowActionsModal(false);
-      setSelectedOrder(null);
     },
     onError: (error: any) => {
       Swal.fire({
@@ -110,14 +119,19 @@ export const ProductionOrdersPage = () => {
   const updateProcessMutation = useMutation({
     mutationFn: ({ processId, data }: { processId: string; data: any }) =>
       productionService.updateProductionProcess(processId, data),
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Invalidate and refetch both orders and sections
+      await queryClient.invalidateQueries({ queryKey: ['production-orders'] });
+      await queryClient.invalidateQueries({ queryKey: ['production-sections'] });
+      await queryClient.refetchQueries({ queryKey: ['production-orders'] });
+      await queryClient.refetchQueries({ queryKey: ['production-sections'] });
+      
       Swal.fire({
         icon: 'success',
         title: t('production.updateSuccess'),
         showConfirmButton: false,
         timer: 1500
       });
-      queryClient.invalidateQueries({ queryKey: ['production-orders'] });
     },
     onError: (error: any) => {
       Swal.fire({
@@ -153,6 +167,7 @@ export const ProductionOrdersPage = () => {
         payload.completedQuantity = order.targetQuantity;
       }
       
+      console.log('Updating status with payload:', payload);
       updateStatusMutation.mutate(payload);
     }
   };
@@ -210,9 +225,18 @@ export const ProductionOrdersPage = () => {
     setShowActionsModal(true);
   };
 
-  const openProcessesModal = (order: ProductionOrder) => {
-    // Get fresh data from orders list to ensure processes are included
-    const freshOrder = orders.find((o: ProductionOrder) => o.id === order.id) || order;
+  const openProcessesModal = async (order: ProductionOrder) => {
+    // Refetch latest data before opening modal
+    await queryClient.refetchQueries({ queryKey: ['production-orders'] });
+    
+    // Get fresh data from orders list after refetch
+    const freshOrders = await queryClient.getQueryData(['production-orders', selectedStatus, dateFrom, dateTo]) as ProductionOrder[];
+    const freshOrder = freshOrders?.find((o: ProductionOrder) => o.id === order.id) || order;
+    
+    console.log('Opening processes modal with order:', freshOrder);
+    console.log('Order processes:', freshOrder.processes);
+    console.log('Available sections:', sections);
+    
     setSelectedOrder(freshOrder);
     setShowProcessesModal(true);
   };

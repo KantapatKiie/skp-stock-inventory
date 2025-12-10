@@ -368,8 +368,14 @@ export const productionController = {
       if (notes !== undefined) updateData.notes = notes;
 
       // Auto-set dates based on status
-      if (status === "IN_PROGRESS" && !updateData.startDate) {
-        updateData.startDate = new Date();
+      if (status === "IN_PROGRESS") {
+        const currentOrder = await (prisma as any).production_orders.findUnique({
+          where: { id },
+          select: { startDate: true },
+        });
+        if (!currentOrder.startDate) {
+          updateData.startDate = new Date();
+        }
       }
       if (status === "COMPLETED") {
         updateData.completedDate = new Date();
