@@ -111,6 +111,7 @@ export const translations = {
       selectToPrint: "เลือกสินค้าที่ต้องการพิมพ์",
       items: "รายการ",
       qrCodeLabel: "ป้ายสินค้า QR Code",
+      printSettings: "ตั้งค่าการพิมพ์",
     },
     inventory: {
       title: "จัดการสต็อก",
@@ -444,6 +445,7 @@ export const translations = {
       selectToPrint: "Select products to print",
       items: "items",
       qrCodeLabel: "QR Code Label",
+      printSettings: "Print Settings",
     },
     inventory: {
       title: "Inventory Management",

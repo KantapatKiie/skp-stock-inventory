@@ -57,78 +57,163 @@ export default function QRCodePrintModal({
 
         {/* Preview Area */}
         <div className="p-6 print:p-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 print:grid-cols-3 print:gap-2">
+          {/* ตัวเลือกขนาดพิมพ์ - ซ่อนตอนพิมพ์ */}
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg border print:hidden">
+            <h3 className="font-semibold text-blue-900 mb-3">
+              📏 {t("products.printSettings")}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-green-500 rounded"></span>
+                <span>ขนาด: 5 x 3.5 cm (แนะนำ)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-blue-500 rounded"></span>
+                <span>ระยะสแกน: 30-60 cm</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-orange-500 rounded"></span>
+                <span>เหมาะสำหรับ: ติดป้าย/เคาน์เตอร์</span>
+              </div>
+            </div>
+          </div>
+
+          {/* พื้นที่พิมพ์ปรับปรุงใหม่ */}
+          <div className="print:grid print:grid-cols-4 print:gap-3 print:p-4">
+            {/* สำหรับหน้าจอ Preview */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
+              {products.map((product) => {
+                const categoryName =
+                  product.categories?.name || product.category?.name || "-";
+                const qrData = product?.barcode || product?.sku || "";
+
+                return (
+                  <div
+                    key={product.id}
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-3 bg-white"
+                    style={{ minHeight: "280px" }}
+                  >
+                    {/* Logo */}
+                    <div className="flex justify-center mb-2">
+                      <img 
+                        src={logoSkp} 
+                        alt="SKP Logo" 
+                        className="h-8 w-auto object-contain"
+                      />
+                    </div>
+
+                    {/* QR Code */}
+                    <div className="flex justify-center mb-2">
+                      <QRCodeSVG
+                        value={qrData}
+                        size={100}
+                        level="H"
+                        includeMargin={true}
+                      />
+                    </div>
+
+                    {/* Product Information */}
+                    <div className="text-center space-y-1">
+                      {/* SKU */}
+                      <div className="font-mono text-sm font-bold text-gray-900">
+                        {product.sku}
+                      </div>
+
+                      {/* Product Name */}
+                      <div className="font-semibold text-xs text-gray-800 line-clamp-2 leading-tight">
+                        {product.name}
+                      </div>
+
+                      {/* Category */}
+                      <div className="text-xs text-gray-600">
+                        <span className="inline-block px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                          {categoryName}
+                        </span>
+                      </div>
+
+                      {/* Unit */}
+                      <div className="text-xs text-gray-500">
+                        {product.unit}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* สำหรับการพิมพ์จริง - ขนาดที่เหมาะสม */}
             {products.map((product) => {
               const categoryName =
                 product.categories?.name || product.category?.name || "-";
-              //   const qrData = JSON.stringify({
-              //     id: product.id,
-              //     sku: product.sku,
-              //     barcode: product.barcode || product.sku,
-              //     name: product.name,
-              //     category: categoryName,
-              //   });
-
               const qrData = product?.barcode || product?.sku || "";
 
               return (
                 <div
-                  key={product.id}
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white print:border-solid print:border-gray-400 print:page-break-inside-avoid"
-                  style={{ minHeight: "320px" }}
+                  key={`print-${product.id}`}
+                  className="hidden print:block print:border print:border-gray-800 print:bg-white print:page-break-inside-avoid"
+                  style={{
+                    width: "5cm",
+                    height: "3.5cm", 
+                    padding: "2mm",
+                    margin: "1mm"
+                  }}
                 >
-                  {/* Logo */}
-                  <div className="flex justify-center mb-2">
+                  {/* Logo - เล็กลง */}
+                  <div className="print:flex print:justify-center print:mb-1">
                     <img 
                       src={logoSkp} 
-                      alt="SKP Logo" 
-                      className="h-12 w-auto object-contain"
+                      alt="SKP" 
+                      style={{ height: "8mm", width: "auto" }}
                     />
                   </div>
 
-                  {/* QR Code */}
-                  <div className="flex justify-center mb-3">
+                  {/* QR Code - ขนาดเหมาะสำหรับสแกน */}
+                  <div className="print:flex print:justify-center print:mb-1">
                     <QRCodeSVG
                       value={qrData}
-                      size={120}
+                      size={60} // ประมาณ 2.1cm - เหมาะสำหรับสแกนระยะ 30-60cm
                       level="H"
-                      includeMargin={true}
-                      className="print:w-32 print:h-32"
+                      includeMargin={false}
                     />
                   </div>
 
-                  {/* Product Information */}
-                  <div className="text-center space-y-1">
+                  {/* ข้อมูลสินค้าแบบกะทัดรัด */}
+                  <div 
+                    className="print:text-center"
+                    style={{ fontSize: "6pt", lineHeight: "1.1" }}
+                  >
                     {/* SKU */}
-                    <div className="font-mono text-lg font-bold text-gray-900">
+                    <div 
+                      className="print:font-bold print:text-black"
+                      style={{ fontSize: "7pt", marginBottom: "0.5mm" }}
+                    >
                       {product.sku}
                     </div>
 
-                    {/* Product Name */}
-                    <div className="font-semibold text-sm text-gray-800 line-clamp-2">
-                      {product.name}
+                    {/* Product Name - ย่อให้พอดี */}
+                    <div 
+                      className="print:text-black"
+                      style={{ 
+                        fontSize: "5pt", 
+                        maxHeight: "6mm",
+                        overflow: "hidden",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical"
+                      }}
+                    >
+                      {product.name.length > 40 ? 
+                        product.name.substring(0, 40) + "..." : 
+                        product.name
+                      }
                     </div>
 
-                    {/* Category */}
-                    <div className="text-xs text-gray-600">
-                      <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                        {categoryName}
-                      </span>
-                    </div>
-
-                    {/* Barcode */}
-                    <div className="font-mono text-xs text-gray-700 mt-2 pt-2 border-t border-gray-200">
-                      {product.barcode || product.sku}
-                    </div>
-
-                    {/* Unit */}
-                    <div className="text-xs text-gray-500">
-                      {t("products.unit")}: {product.unit}
-                    </div>
-
-                    {/* Print Date - แสดงเฉพาะตอนพิมพ์ */}
-                    <div className="hidden print:block text-xs text-gray-400 mt-2 pt-2 border-t border-gray-200">
-                      {formatDate()}
+                    {/* Barcode/Unit */}
+                    <div 
+                      className="print:text-gray-600"
+                      style={{ fontSize: "4pt", marginTop: "0.5mm" }}
+                    >
+                      {product.barcode || product.sku} • {product.unit}
                     </div>
                   </div>
                 </div>
@@ -170,19 +255,97 @@ export default function QRCodePrintModal({
       {/* Print Styles */}
       <style>{`
         @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
           body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
+            margin: 0;
+            padding: 0;
           }
           
           @page {
             size: A4;
-            margin: 10mm;
+            margin: 5mm;
           }
 
+          /* จัดการแบ่งหน้าแบบสมดุล */
           .print\\:page-break-inside-avoid {
-            page-break-inside: avoid;
-            break-inside: avoid;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+
+          /* จัดตำแหน่งให้สมดุลในหน้า A4 */
+          .print\\:grid-cols-4 {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 3mm !important;
+            padding: 5mm !important;
+            justify-content: space-evenly !important;
+          }
+
+          /* ขนาดพื้นที่พิมพ์แต่ละช่อง */
+          .print\\:border {
+            border: 1px solid #000 !important;
+          }
+
+          .print\\:bg-white {
+            background: white !important;
+          }
+
+          .print\\:text-center {
+            text-align: center !important;
+          }
+
+          .print\\:text-black {
+            color: #000 !important;
+          }
+
+          .print\\:text-gray-600 {
+            color: #666 !important;
+          }
+
+          .print\\:font-bold {
+            font-weight: bold !important;
+          }
+
+          .print\\:flex {
+            display: flex !important;
+          }
+
+          .print\\:justify-center {
+            justify-content: center !important;
+          }
+
+          .print\\:mb-1 {
+            margin-bottom: 1mm !important;
+          }
+
+          /* ซ่อนส่วนที่ไม่ต้องการตอนพิมพ์ */
+          .print\\:hidden {
+            display: none !important;
+          }
+
+          .print\\:block {
+            display: block !important;
+          }
+
+          /* ปรับขนาดให้พอดีกับ A4 - 16 ช่องต่อหน้า (4x4) */
+          /* ขนาดจริง 5cm x 3.5cm */
+          [style*="width: 5cm"] {
+            width: 5cm !important;
+            height: 3.5cm !important;
+          }
+        }
+
+        /* สำหรับการ Preview บนหน้าจอ */
+        @media screen {
+          .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
           }
         }
       `}</style>
